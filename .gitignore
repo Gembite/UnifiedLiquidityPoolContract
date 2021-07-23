@@ -4,5 +4,4 @@
 secret.kovan.json
 secret.mumbai.json
 /public
-/contracts/Fake
 /contracts/RandomNumberConsumer.sol

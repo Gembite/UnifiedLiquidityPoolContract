@@ -1,13 +1,29 @@
 const GBTS = artifacts.require("GBTS");
 const ULP = artifacts.require("UnifiedLiquidityPool");
 const RNG = artifacts.require("RandomNumberConsumer");
+const Game1 = artifacts.require("Game1");
+const Game2 = artifacts.require("Game2");
 const { assert } = require("chai");
 const { BN } = require("web3-utils");
+const timeMachine = require('ganache-time-traveler');
 
 contract("ULP", (accounts) => {
-    let gbts_contract, ulp_contract, rng_contract;
+    let gbts_contract, ulp_contract, rng_contract, game1_contract, game2_contract;
 
     before(async () => {
+
+        await Game1.new(
+            { from: accounts[0] }
+        ).then((instance) => {
+            game1_contract = instance;
+        });
+
+        await Game2.new(
+            { from: accounts[0] }
+        ).then((instance) => {
+            game2_contract = instance;
+        });
+
         await GBTS.new(
             { from: accounts[0] }
         ).then((instance) => {
@@ -374,6 +390,54 @@ contract("ULP", (accounts) => {
             assert.equal(new BN(await gbts_contract.balanceOf(accounts[2])).toString(), new BN('90089886146865544029436').toString());
             assert.equal(new BN(await gbts_contract.balanceOf(accounts[3])).toString(), new BN('180269658440596632088308').toString());
             assert.equal(new BN(await gbts_contract.balanceOf(accounts[5])).toString(), new BN('360539316881193264176619').toString());
+        });
+    });
+
+    describe("Game Approval", () => {
+        it("Address is not the game.", async () => {
+            let thrownError;
+            try {
+                await ulp_contract.unlockGameForApproval(
+                    "0x52dc9CB2231e2AA819F0F638a29BC144173D10Ab", 
+                    { from: accounts[0] }
+                );
+            } catch (error) {
+                thrownError = error;
+            }
+            assert.include(
+                thrownError.message,
+                "ULP: Address is not contract address"
+            )
+        });
+
+        it("This game is already initiated", async () => {
+            await ulp_contract.unlockGameForApproval(
+                game1_contract.address,
+                { from: accounts[0] }
+            );
+
+            let thrownError;
+            try {
+                await ulp_contract.unlockGameForApproval(
+                    game1_contract.address, 
+                    { from: accounts[0] }
+                );
+            } catch (error) {
+                thrownError = error;
+            }
+            assert.include(
+                thrownError.message,
+                "ULP: Game approval unlock already initiated"
+            )
+        });
+
+        it("Game is approved", async () => {
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.changeGameApproval(
+                game1_contract.address, 
+                true,
+                { from: accounts[0] }
+            );
         });
     });
 });

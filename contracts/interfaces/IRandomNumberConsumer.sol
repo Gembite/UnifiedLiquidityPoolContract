@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.6;
 
 /**
  * @title RandomNumberConsumer Interface
@@ -8,11 +8,8 @@ pragma solidity ^0.8.0;
 interface IRandomNumberConsumer {
     /**
      * @dev Public function for request randomness from a user-provided seed and returns request Id. This function can be called by only apporved games.
-     * @param _userProvidedSeed Number of seed. Any number can be.
      */
-    function requestRandomNumber(uint256 _userProvidedSeed)
-        external
-        returns (bytes32);
+    function requestRandomNumber() external returns (bytes32);
 
     /**
      * @dev Public function for returning verified random number. This function can be called by only ULP.

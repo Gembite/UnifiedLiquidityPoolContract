@@ -24,9 +24,6 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Event emitted when change the jackPot Address
     event jackPotChanged(address jackAddress);
 
-    /// @notice Event emitted when change the RNG Address
-    event RNGChanged(address rngAddr);
-
     /// @notice Event emitted when owner initialize staking.
     event stakingStarted(uint256 GBTSAmount);
 

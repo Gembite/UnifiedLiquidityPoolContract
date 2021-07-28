@@ -248,7 +248,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
 
         uint256 index = providerIndex[msg.sender];
 
-        if (stakers[index].provider == msg.sender) {
+        if (stakers[index].provider == msg.sender && index != 0) {
             stakers[index].shares = stakers[index].shares + _amount;
         } else {
             providerIndex[msg.sender] = stakers.length;

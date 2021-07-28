@@ -482,7 +482,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     function burnULPsGbts(uint256 _amount) external onlyOwner {
         require(stakers[0].shares >= _amount, "ULP: Not enough shares");
         stakers[0].shares = stakers[0].shares - _amount;
-
+        _burn(address(this), _amount);
         emit sGBTSburnt(_amount);
     }
 }

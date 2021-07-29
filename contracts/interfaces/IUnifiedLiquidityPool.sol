@@ -30,12 +30,6 @@ interface IUnifiedLiquidityPool {
     function sendPrize(address _winner, uint256 _prizeAmount) external;
 
     /**
-     * @dev External function for approving games. This is called by only owner.
-     * @param _gameAddr Address of game
-     */
-    function approveGame(address _gameAddr, bool _approved) external;
-
-    /**
      * @dev External function for burning sGBTS token. Only called by owner.
      * @param _amount Amount of sGBTS
      */
@@ -53,26 +47,10 @@ interface IUnifiedLiquidityPool {
     function getNewRandomNumber(uint256 _oldRandom) external returns (uint256);
 
     /**
-     * @dev Public function for returning verified random number. This function can be called by only approved games.
-     */
-    function getVerifiedRandomNumber() external view returns (uint256);
-
-    /**
-     * @dev External function to return the current NFT distribution address
-     */
-    function currentNFT() external view returns (address);
-
-    /**
      * @dev External function for checking if the gameAddress is the approved game.
      * @param _gameAddress Game Address
      */
     function currentGameApproved(address _gameAddress) external returns (bool);
-
-    /**
-     * @dev External function to set the NFT distribution address. This function can be called by only owner.
-     * @param _nftDistAddr Address of new NFT Distribution
-     */
-    function setNFTAddress(address _nftDistAddr) external;
 
     /**
      * @dev External function for changing game's approval. This is called by only owner.
@@ -116,4 +94,9 @@ interface IUnifiedLiquidityPool {
      *      Only if the ULP has more then 45 million GBTS.
      */
     function distribute() external;
+
+    /**
+     * @dev External function for getting approved games list.
+     */
+    function getApprovedGamesList() external view returns (address[] memory);
 }

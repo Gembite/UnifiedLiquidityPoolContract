@@ -3,6 +3,7 @@ pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -14,6 +15,7 @@ import "./interfaces/IRandomNumberConsumer.sol";
 
 contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     using Address for address;
+    using SafeERC20 for IERC20;
 
     /// @notice Event emitted only on construction.
     event UnifiedLiquidityPoolDeployed();
@@ -166,10 +168,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             "ULP: Caller has not enough balance"
         );
 
-        require(
-            GBTS.transferFrom(msg.sender, address(this), _initialStake),
-            "ULP: Transfer failed"
-        );
+        GBTS.safeTransferFrom(msg.sender, address(this), _initialStake);
 
         _mint(address(this), _initialStake);
 
@@ -194,11 +193,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         uint256 sGBTSAmount = ((_amount - feeAmount) * totalSupply()) /
             ((GBTS.balanceOf(address(this)) + currentWeight));
 
-        require(
-            GBTS.transferFrom(msg.sender, address(this), _amount),
-            "ULP: Transfer failed"
-        );
-
+        GBTS.safeTransferFrom(msg.sender, address(this), _amount);
         _mint(msg.sender, sGBTSAmount);
 
         emit staked(msg.sender, _amount, sGBTSAmount);
@@ -225,7 +220,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         }
         _burn(msg.sender, _amount);
 
-        require(GBTS.transfer(msg.sender, toSend), "ULP: Transfer Failed");
+        GBTS.safeTransfer(msg.sender, toSend);
 
         if (totalSupply() == 0) {
             isStakingStarted = false;
@@ -323,10 +318,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
                         totalSupply();
                     currentWeight = currentWeight + sendAmount;
                     distribution = distribution + sendAmount;
-                    require(
-                        GBTS.transfer(user.provider, sendAmount),
-                        "ULP: Staker didn't receive profits"
-                    );
+                    GBTS.safeTransfer(user.provider, sendAmount);
                     user.profits = sendAmount + user.profits;
                     emit distributed(
                         sendAmount,
@@ -409,7 +401,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             GBTS.balanceOf(address(this)) >= _prizeAmount,
             "ULP: There is no enough GBTS balance"
         );
-        require(GBTS.transfer(_winner, _prizeAmount), "ULP: Transfer failed");
+       GBTS.safeTransfer(_winner, _prizeAmount);
 
         emit prizeSent(msg.sender, _winner, _prizeAmount);
     }

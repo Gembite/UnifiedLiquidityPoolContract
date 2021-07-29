@@ -93,7 +93,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     uint256 public indexProvider;
 
     /// @notice Amount of limit can be distributed
-    uint256 public balanceControlULP = 45000000 * 10**18;
+    uint256 constant balanceControlULP = 45000000 * 10**18;
 
     /// @notice Distribution weight
     uint256 public distribution;

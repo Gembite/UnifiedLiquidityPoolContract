@@ -23,9 +23,6 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Event emitted when only burn sGBTS token
     event sGBTSburnt(uint256 sGBTSAmount);
 
-    /// @notice Event emitted when change the jackPot Address
-    event jackPotChanged(address jackAddress);
-
     /// @notice Event emitted when owner initialize staking.
     event stakingStarted(uint256 GBTSAmount);
 
@@ -53,8 +50,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Event emitted when game is approved
     event gameApproved(address gameAddr, bool approved);
 
-    /// @notice NFT address set
-    event nftSet(address NFT);
+    /// @notice Event emitted when dividend pool is changed
+    event dividendPoolAddressChanged(address ulpDivAddr, uint256 burnAmount);
 
     struct dividendPool {
         address provider;
@@ -63,7 +60,10 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /// @notice Approved Game List
-    mapping(address => bool) public approvedGames;
+    address[] public approvedGamesList;
+
+    /// @notice Current game is approved
+    mapping(address => bool) public isApprovedGame;
 
     /// @notice GBTS token instance
     IERC20 public GBTS;
@@ -71,14 +71,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Random Number Consumer instance
     IRandomNumberConsumer public RNG;
 
-    /// @notice Address of NFT distribution
-    address public NFTaddress;
-
     /// @notice Boolean variable for checking whether staking is started or not
     bool public isStakingStarted;
-
-    /// @notice Address of jackPot
-    address public jackPotAddress;
 
     /// @notice Weight of current distribution amount
     uint256 public currentWeight;
@@ -112,7 +106,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     modifier onlyApprovedGame() {
-        require(approvedGames[msg.sender], "ULP: Game is not approved");
+        require(isApprovedGame[msg.sender], "ULP: Game is not approved");
         _;
     }
 
@@ -140,20 +134,6 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         GBTS = _GBTS;
         RNG = _RNG;
         emit UnifiedLiquidityPoolDeployed();
-    }
-
-    /**
-     * @dev External function for adding or changing JackPot Address.
-     * @param _jpAddress Address of JackPot
-     */
-    function changeJackPot(address _jpAddress) external onlyOwner {
-        require(
-            _jpAddress.isContract() == true,
-            "ULP: This is not a Contract Address"
-        );
-        jackPotAddress = _jpAddress;
-
-        emit jackPotChanged(_jpAddress);
     }
 
     /**
@@ -348,7 +328,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         uint256 feeAmount = stakers[0].shares / 1000; //0.1% fee to change ULP stakes
         stakers[0].shares = stakers[0].shares - feeAmount;
         _burn(address(this), feeAmount);
-        emit sGBTSburnt(feeAmount);
+        emit dividendPoolAddressChanged(_ulpDivAddr, feeAmount);
     }
 
     /**
@@ -383,9 +363,28 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             _gameAddr.isContract() == true,
             "ULP: Address is not contract address"
         );
-        approvedGames[_gameAddr] = _approved;
-
+        isApprovedGame[_gameAddr] = _approved;
+        for (uint256 i = 0; i < approvedGamesList.length; i++) {
+            if (approvedGamesList[i] == _gameAddr) {
+                approvedGamesList[i] = approvedGamesList[
+                    approvedGamesList.length - 1
+                ];
+                approvedGamesList.pop();
+                break;
+            }
+        }
+        if (_approved == true) {
+            approvedGamesList.push(_gameAddr);
+        }
+        gameApprovalLockTimestamp[_gameAddr] = block.timestamp;
         emit gameApproved(_gameAddr, _approved);
+    }
+
+    /**
+     * @dev External function for getting approved games list.
+     */
+    function getApprovedGamesList() external view returns (address[] memory) {
+        return approvedGamesList;
     }
 
     /**
@@ -401,7 +400,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             GBTS.balanceOf(address(this)) >= _prizeAmount,
             "ULP: There is no enough GBTS balance"
         );
-       GBTS.safeTransfer(_winner, _prizeAmount);
+        GBTS.safeTransfer(_winner, _prizeAmount);
 
         emit prizeSent(msg.sender, _winner, _prizeAmount);
     }
@@ -437,31 +436,15 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev External function to set the NFT distribution address. This function can be called by only owner.
-     * @param _nftDistAddr Address of new NFT Distribution
-     */
-    function setNFTAddress(address _nftDistAddr) external onlyOwner {
-        NFTaddress = _nftDistAddr;
-        emit nftSet(_nftDistAddr);
-    }
-
-    /**
      * @dev External function for checking if the gameAddress is the approved game.
      * @param _gameAddress Game Address
      */
-    function approvedGamesList(address _gameAddress)
+    function currentGameApproved(address _gameAddress)
         external
         view
         returns (bool)
     {
-        return approvedGames[_gameAddress];
-    }
-
-    /**
-     * @dev External function to return the current NFT distribution address
-     */
-    function currentNFT() external view returns (address) {
-        return address(NFTaddress);
+        return isApprovedGame[_gameAddress];
     }
 
     /**

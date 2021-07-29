@@ -1,21 +1,36 @@
 const GBTS = artifacts.require("GBTS");
 const ULP = artifacts.require("UnifiedLiquidityPool");
 const RNG = artifacts.require("RandomNumberConsumer");
-const Game = artifacts.require("Game");
+const Game1 = artifacts.require("Game1");
+const Game2 = artifacts.require("Game2");
+const Game3 = artifacts.require("Game3");
 const { assert } = require("chai");
 const { BN } = require("web3-utils");
 const timeMachine = require('ganache-time-traveler');
 
 contract("ULP", (accounts) => {
-    let gbts_contract, ulp_contract, rng_contract, game_contract;
+    let gbts_contract, ulp_contract, rng_contract, game1_contract, game2_contract, game3_contract;
 
     before(async () => {
 
-        await Game.new(
+        await Game1.new(
             { from: accounts[0] }
         ).then((instance) => {
-            game_contract = instance;
+            game1_contract = instance;
         });
+
+        await Game2.new(
+            { from: accounts[0] }
+        ).then((instance) => {
+            game2_contract = instance;
+        });
+
+        await Game3.new(
+            { from: accounts[0] }
+        ).then((instance) => {
+            game3_contract = instance;
+        });
+
 
         await GBTS.new(
             { from: accounts[0] }
@@ -405,14 +420,14 @@ contract("ULP", (accounts) => {
 
         it("This game is already initiated", async () => {
             await ulp_contract.unlockGameForApproval(
-                game_contract.address,
+                game1_contract.address,
                 { from: accounts[0] }
             );
 
             let thrownError;
             try {
                 await ulp_contract.unlockGameForApproval(
-                    game_contract.address,
+                    game1_contract.address,
                     { from: accounts[0] }
                 );
             } catch (error) {
@@ -427,10 +442,48 @@ contract("ULP", (accounts) => {
         it("Game is approved", async () => {
             await timeMachine.advanceTimeAndBlock(86400);
             await ulp_contract.changeGameApproval(
-                game_contract.address,
+                game1_contract.address,
                 true,
                 { from: accounts[0] }
             );
+
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.unlockGameForApproval(
+                game2_contract.address,
+                { from: accounts[0] }
+            );
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.changeGameApproval(
+                game2_contract.address,
+                true,
+                { from: accounts[0] }
+            );
+
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.unlockGameForApproval(
+                game3_contract.address,
+                { from: accounts[0] }
+            );
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.changeGameApproval(
+                game3_contract.address,
+                true,
+                { from: accounts[0] }
+            );
+
+            await timeMachine.advanceTimeAndBlock(86400);
+            await ulp_contract.changeGameApproval(
+                game2_contract.address,
+                false,
+                { from: accounts[0] }
+            );
+            
+            const approvedGamesList = await ulp_contract.getApprovedGamesList();
+            console.log(approvedGamesList.length);
+            console.log(approvedGamesList[0]);
+            console.log(approvedGamesList[1]);
+            console.log(approvedGamesList[2]);
+            console.log(approvedGamesList[3]);
         });
     });
 });

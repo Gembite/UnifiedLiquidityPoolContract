@@ -66,7 +66,7 @@ interface IUnifiedLiquidityPool {
      * @dev External function for checking if the gameAddress is the approved game.
      * @param _gameAddress Game Address
      */
-    function approvedGamesList(address _gameAddress) external returns (bool);
+    function currentGameApproved(address _gameAddress) external returns (bool);
 
     /**
      * @dev External function to set the NFT distribution address. This function can be called by only owner.

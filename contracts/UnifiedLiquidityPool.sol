@@ -94,6 +94,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
 
     uint256 private currentRandom;
 
+    bytes32 private currentRequestId;
+
     uint256 private constant APPROVAL_TIMELOCK = 1 days;
 
     mapping(address => uint256) public gameApprovalLockTimestamp;
@@ -409,12 +411,12 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
      * @dev Public function for getting vrf number and reqeust randomness. This function can be called by only apporved games.
      */
     function getRandomNumber() public onlyApprovedGame returns (uint256) {
-        uint256 rand = RNG.getVerifiedRandomNumber();
+        uint256 rand = RNG.getVerifiedRandomNumber(currentRequestId);
         if (currentRandom != rand || (currentRandom == 0 && rand == 0)) {
             distribute();
             randomNumbers[currentRandom] = rand;
             currentRandom = rand;
-            RNG.requestRandomNumber();
+            currentRequestId = RNG.requestRandomNumber();
         }
         return currentRandom;
     }

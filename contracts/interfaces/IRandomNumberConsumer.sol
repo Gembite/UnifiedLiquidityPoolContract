@@ -14,7 +14,7 @@ interface IRandomNumberConsumer {
     /**
      * @dev Public function for returning verified random number. This function can be called by only ULP.
      */
-    function getVerifiedRandomNumber() external view returns (uint256);
+    function getVerifiedRandomNumber(bytes32 activeID) external view returns (uint256);
 
     /**
      * @dev Public function for setting ULP address. This function can be called by only owner.

@@ -109,6 +109,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     uint256 lastRandom;
     
     uint256 nextCall;
+    
+    mapping(address => uint)gameIndex;
         
 
     modifier canStake() {
@@ -366,6 +368,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
      * @param _gameAddr Address of game
      * @param _approved Approve a game or not
      */
+
+     
     function changeGameApproval(address _gameAddr, bool _approved)
         external
         onlyOwner
@@ -375,19 +379,21 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             _gameAddr.isContract() == true,
             "ULP: Address is not contract address"
         );
-        isApprovedGame[_gameAddr] = _approved;
-        for (uint256 i = 0; i < approvedGamesList.length; i++) {
-            if (approvedGamesList[i] == _gameAddr) {
-                approvedGamesList[i] = approvedGamesList[
-                    approvedGamesList.length - 1
+        uint index = gameIndex[_gameAddr];
+        if(approvedGameList[index] == _gameAddr){
+            approvedGamesList[i] = approvedGamesList[
+                approvedGamesList.length - 1
                 ];
-                approvedGamesList.pop();
-                break;
-            }
+            approvedGamesList.pop();
+            break;
+        
         }
-        if (_approved == true) {
+      
+        if (_approved == true ) {
+            gameIndex[_gameAddr} = approvedGamesList.length;
             approvedGamesList.push(_gameAddr);
         }
+
         gameApprovalLockTimestamp[_gameAddr] = block.timestamp;
         emit gameApproved(_gameAddr, _approved);
     }

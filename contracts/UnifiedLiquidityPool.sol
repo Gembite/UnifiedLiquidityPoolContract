@@ -92,15 +92,20 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Distribution weight
     uint256 public distribution;
 
-    uint256 private currentRandom;
-
     bytes32 private currentRequestId;
 
     uint256 private constant APPROVAL_TIMELOCK = 1 days;
 
     mapping(address => uint256) public gameApprovalLockTimestamp;
-
-    mapping(uint256 => uint256) private randomNumbers;
+    
+    mapping(byte32 => uint256) randomMatch;
+    
+    mapping(byte32 =>bool) hasReturned;
+    
+    uint256 lastRandom;
+    
+    uint256 nextCall;
+        
 
     modifier canStake() {
         require(isStakingStarted, "ULP: Owner must initialize staking");
@@ -136,6 +141,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         GBTS = _GBTS;
         RNG = _RNG;
         emit UnifiedLiquidityPoolDeployed();
+        nextCall = 3;
     }
 
     /**
@@ -410,31 +416,34 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /**
      * @dev Public function for getting vrf number and reqeust randomness. This function can be called by only apporved games.
      */
-    function getRandomNumber() public onlyApprovedGame returns (uint256) {
-        uint256 rand = RNG.getVerifiedRandomNumber(currentRequestId);
-        if (currentRandom != rand || (currentRandom == 0 && rand == 0)) {
+
+    function getRandomNumber() public onlyApprovedGame returns (byte32) {
+        if (block.number - lastnumber > nextCall){
             distribute();
-            randomNumbers[currentRandom] = rand;
-            currentRandom = rand;
             currentRequestId = RNG.requestRandomNumber();
+            randomMatch[currentRequestID] = 0;
+            hasReturned[currentRequestID] = false;
         }
-        return currentRandom;
+        return currentRequestID;
     }
 
     /**
      * @dev Public function for getting new vrf number(Game number). This function can be called by only apporved games.
      * @param _oldRandom Previous random number
      */
-    function getNewRandomNumber(uint256 _oldRandom)
+    function getNewRandomNumber(byte32 batchID)
         public
         onlyApprovedGame
         returns (uint256)
     {
-        require(
-            _oldRandom != getRandomNumber(),
-            "ULP: Current game is not time to play"
-        );
-        return randomNumbers[_oldRandom];
+        if(hasReturned[batchID]){
+            return randomMatch[batchID]
+        }else{
+            uint256 random = RNG.getVerifiedRandomNumber(batchID); //RNG will revert if it is not returned
+            hasReturned[batchID] =true;
+            randomMatch[batchID] = random;
+            return random;
+        }
     }
 
     /**
@@ -458,5 +467,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         stakers[0].shares = stakers[0].shares - _amount;
         _burn(address(this), _amount);
         emit sGBTSburnt(_amount);
+    }
+    function changeBatchBlockSpace(uint256 _newChange) external onlyOwner{
+        require( _newchange <= 3, "The change does not meet the parameters.");
     }
 }

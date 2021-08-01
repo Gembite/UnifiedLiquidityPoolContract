@@ -17,6 +17,10 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     using Address for address;
     using SafeERC20 for IERC20;
 
+    /// @notice Event emitted only when batch block changes
+    event batchGroupingChanged(nextCall);
+
+
     /// @notice Event emitted only on construction.
     event UnifiedLiquidityPoolDeployed();
 
@@ -469,6 +473,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         emit sGBTSburnt(_amount);
     }
     function changeBatchBlockSpace(uint256 _newChange) external onlyOwner{
-        require( _newchange <= 3, "The change does not meet the parameters.");
+        require( _newChange <= 3, "The change does not meet the parameters.");
+        nextCall = _newChange;
+        emit batchGroupingChanged(nextCall);
     }
 }

@@ -111,6 +111,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     uint256 nextCall;
     
     mapping(address => uint)gameIndex;
+    
+    uint256 public dividendTotal;
         
 
     modifier canStake() {
@@ -168,7 +170,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
 
         isStakingStarted = true;
         stakers.push(dividendPool(address(this), _initialStake, 0));
-
+        dividendTotal += _initialStake;
         emit stakingStarted(_initialStake);
     }
 
@@ -234,7 +236,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         );
 
         require(transfer(address(this), _amount), "ULP: Transfer failed");
-
+        dividendTotal += _amount;
         uint256 index = providerIndex[msg.sender];
 
         if (stakers[index].provider == msg.sender && index != 0) {
@@ -273,10 +275,10 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
 
         require(index != 0, "ULP: Index out of bounds");
         require(stakers[index].shares >= _amount, "ULP: Not enough shares");
-
+        
         uint256 feeAmount = _amount / 25; //4% fee
         stakers[index].shares = stakers[index].shares - _amount;
-
+        dividendTotal = dividendTotal - _amount;
         _burn(address(this), feeAmount);
 
         uint256 amountToSend = _amount - feeAmount;
@@ -309,7 +311,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
                 } else {
                     //Set to sGBTS % to 2millGBTS
                     uint256 sendAmount = (user.shares * 2000000 * 10**18) /
-                        totalSupply();
+                        dividendTotal;
                     currentWeight = currentWeight + sendAmount;
                     distribution = distribution + sendAmount;
                     GBTS.safeTransfer(user.provider, sendAmount);
@@ -341,6 +343,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         stakers[0].provider = _ulpDivAddr;
         uint256 feeAmount = stakers[0].shares / 1000; //0.1% fee to change ULP stakes
         stakers[0].shares = stakers[0].shares - feeAmount;
+        dividendTotal= dividendTotal - feeAmount;
         _burn(address(this), feeAmount);
         emit dividendPoolAddressChanged(_ulpDivAddr, feeAmount);
     }
@@ -381,9 +384,11 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         );
         uint index = gameIndex[_gameAddr];
         if(approvedGameList[index] == _gameAddr){
-            approvedGamesList[i] = approvedGamesList[
+             addy = approvedGamesList[
                 approvedGamesList.length - 1
                 ];
+            approvedGamesList[index] = addy;
+            gameIndex[addy] = index;
             approvedGamesList.pop();
             break;
         
@@ -475,6 +480,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     function burnULPsGbts(uint256 _amount) external onlyOwner {
         require(stakers[0].shares >= _amount, "ULP: Not enough shares");
         stakers[0].shares = stakers[0].shares - _amount;
+        dividendTotal = dividendTotal - _amount;
         _burn(address(this), _amount);
         emit sGBTSburnt(_amount);
     }

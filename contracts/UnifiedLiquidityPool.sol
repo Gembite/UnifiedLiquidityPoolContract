@@ -17,15 +17,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    /// @notice Event emitted only when batch block changes
-    event batchGroupingChanged(nextCall);
-
-
     /// @notice Event emitted only on construction.
     event UnifiedLiquidityPoolDeployed();
-
-    /// @notice Event emitted when only burn sGBTS token
-    event sGBTSburnt(uint256 sGBTSAmount);
 
     /// @notice Event emitted when owner initialize staking.
     event stakingStarted(uint256 GBTSAmount);
@@ -45,8 +38,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Event emitted when distributed
     event distributed(uint256 distributionAmount, address receiver);
 
-    /// @notice Event emitted when prize is sent to the winner
-    event prizeSent(address gameAddr, address winner, uint256 GBTSAmount);
+    /// @notice Event emitted when dividend pool is changed
+    event dividendPoolAddressChanged(address ulpDivAddr, uint256 burnAmount);
 
     /// @notice Event emitted when game unlock is initiated
     event gameApprovalUnlockInitiated(address gameAddr);
@@ -54,8 +47,14 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     /// @notice Event emitted when game is approved
     event gameApproved(address gameAddr, bool approved);
 
-    /// @notice Event emitted when dividend pool is changed
-    event dividendPoolAddressChanged(address ulpDivAddr, uint256 burnAmount);
+    /// @notice Event emitted when prize is sent to the winner
+    event prizeSent(address gameAddr, address winner, uint256 GBTSAmount);
+
+    /// @notice Event emitted when only burn sGBTS token
+    event sGBTSburnt(uint256 sGBTSAmount);
+    
+    /// @notice Event emitted only when batch block changes
+    event batchGroupingChanged(uint256 nextCall);
 
     struct dividendPool {
         address provider;
@@ -101,19 +100,18 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     uint256 private constant APPROVAL_TIMELOCK = 1 days;
 
     mapping(address => uint256) public gameApprovalLockTimestamp;
-    
-    mapping(byte32 => uint256) randomMatch;
-    
-    mapping(byte32 =>bool) hasReturned;
-    
-    uint256 lastRandom;
-    
+
+    mapping(bytes32 => uint256) randomMatch;
+
+    mapping(bytes32 => bool) hasReturned;
+
+    uint256 lastBlockNumber;
+
     uint256 nextCall;
-    
-    mapping(address => uint)gameIndex;
-    
+
+    mapping(address => uint256) gameIndex;
+
     uint256 public dividendTotal;
-        
 
     modifier canStake() {
         require(isStakingStarted, "ULP: Owner must initialize staking");
@@ -153,7 +151,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev External function for start staking. Only owner can call this function.
+     * @dev External function to start staking. Only owner can call this function.
      * @param _initialStake Amount of GBTS token
      */
     function startStaking(uint256 _initialStake) external onlyOwner {
@@ -196,7 +194,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev External function for exit staking. Users can withdraw their funds.
+     * @dev External function to exit staking. Users can withdraw their funds.
      * @param _amount Amount of sGBTS token
      */
     function exitStake(uint256 _amount) external canStake nonReentrant {
@@ -226,7 +224,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev External function that allows sGBTS holder to deposit their token to earn direct deposits of GBTS into their wallets
+     * @dev External function to allow sGBTS holder to deposit their token to earn direct deposits of GBTS into their wallets
      * @param _amount Amount of sGBTS
      */
     function addToDividendPool(uint256 _amount) external {
@@ -275,7 +273,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
 
         require(index != 0, "ULP: Index out of bounds");
         require(stakers[index].shares >= _amount, "ULP: Not enough shares");
-        
+
         uint256 feeAmount = _amount / 25; //4% fee
         stakers[index].shares = stakers[index].shares - _amount;
         dividendTotal = dividendTotal - _amount;
@@ -343,7 +341,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         stakers[0].provider = _ulpDivAddr;
         uint256 feeAmount = stakers[0].shares / 1000; //0.1% fee to change ULP stakes
         stakers[0].shares = stakers[0].shares - feeAmount;
-        dividendTotal= dividendTotal - feeAmount;
+        dividendTotal = dividendTotal - feeAmount;
         _burn(address(this), feeAmount);
         emit dividendPoolAddressChanged(_ulpDivAddr, feeAmount);
     }
@@ -372,7 +370,6 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
      * @param _approved Approve a game or not
      */
 
-     
     function changeGameApproval(address _gameAddr, bool _approved)
         external
         onlyOwner
@@ -382,36 +379,32 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             _gameAddr.isContract() == true,
             "ULP: Address is not contract address"
         );
-        uint index = gameIndex[_gameAddr];
-        if(approvedGameList[index] == _gameAddr){
-             addy = approvedGamesList[
-                approvedGamesList.length - 1
-                ];
+        uint256 index = gameIndex[_gameAddr];
+        if (approvedGamesList[index] == _gameAddr) {
+            address addy = approvedGamesList[approvedGamesList.length - 1];
             approvedGamesList[index] = addy;
             gameIndex[addy] = index;
             approvedGamesList.pop();
-            break;
-        
         }
-      
-        if (_approved == true ) {
-            gameIndex[_gameAddr} = approvedGamesList.length;
+
+        if (_approved == true) {
+            gameIndex[_gameAddr] = approvedGamesList.length;
             approvedGamesList.push(_gameAddr);
         }
 
-        gameApprovalLockTimestamp[_gameAddr] = block.timestamp;
+        gameApprovalLockTimestamp[_gameAddr] = 0;
         emit gameApproved(_gameAddr, _approved);
     }
 
     /**
-     * @dev External function for getting approved games list.
+     * @dev External function to get approved games list.
      */
     function getApprovedGamesList() external view returns (address[] memory) {
         return approvedGamesList;
     }
 
     /**
-     * @dev External function for sending prize to winner. This is called by only approved games.
+     * @dev External function to send prize to winner. This is called by only approved games.
      * @param _winner Address of game winner
      * @param _prizeAmount Amount of GBTS token
      */
@@ -429,40 +422,40 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Public function for getting vrf number and reqeust randomness. This function can be called by only apporved games.
+     * @dev Public function to request Chainlink random number from ULP. This function can be called by only apporved games.
      */
-
-    function getRandomNumber() public onlyApprovedGame returns (byte32) {
-        if (block.number - lastnumber > nextCall){
+    function requestRandomNumber() public onlyApprovedGame returns (bytes32) {
+        if (block.number - lastBlockNumber > nextCall) {
             distribute();
             currentRequestId = RNG.requestRandomNumber();
-            randomMatch[currentRequestID] = 0;
-            hasReturned[currentRequestID] = false;
+            randomMatch[currentRequestId] = 0;
+            hasReturned[currentRequestId] = false;
+            lastBlockNumber = block.number;
         }
-        return currentRequestID;
+        return currentRequestId;
     }
 
     /**
-     * @dev Public function for getting new vrf number(Game number). This function can be called by only apporved games.
-     * @param _oldRandom Previous random number
+     * @dev Public function to get new vrf number(Game number). This function can be called by only apporved games.
+     * @param _requestId Batching Id of random number.
      */
-    function getNewRandomNumber(byte32 batchID)
+    function getVerifiedRandomNumber(bytes32 _requestId)
         public
         onlyApprovedGame
         returns (uint256)
     {
-        if(hasReturned[batchID]){
-            return randomMatch[batchID]
-        }else{
-            uint256 random = RNG.getVerifiedRandomNumber(batchID); //RNG will revert if it is not returned
-            hasReturned[batchID] =true;
-            randomMatch[batchID] = random;
+        if (hasReturned[_requestId]) {
+            return randomMatch[_requestId];
+        } else {
+            uint256 random = RNG.getVerifiedRandomNumber(_requestId); //RNG will revert if it is not returned
+            hasReturned[_requestId] = true;
+            randomMatch[_requestId] = random;
             return random;
         }
     }
 
     /**
-     * @dev External function for checking if the gameAddress is the approved game.
+     * @dev External function to check if the gameAddress is the approved game.
      * @param _gameAddress Game Address
      */
     function currentGameApproved(address _gameAddress)
@@ -474,7 +467,7 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev External function for burning sGBTS token. Only called by owner.
+     * @dev External function to burn sGBTS token. Only called by owner.
      * @param _amount Amount of sGBTS
      */
     function burnULPsGbts(uint256 _amount) external onlyOwner {
@@ -484,8 +477,13 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         _burn(address(this), _amount);
         emit sGBTSburnt(_amount);
     }
-    function changeBatchBlockSpace(uint256 _newChange) external onlyOwner{
-        require( _newChange <= 3, "The change does not meet the parameters.");
+
+    /**
+     * @dev External function to change batch block space. Only called by owner.
+     * @param _newChange Block space change amount
+     */
+    function changeBatchBlockSpace(uint256 _newChange) external onlyOwner {
+        require(_newChange <= 3, "ULP: The change does not meet the parameters");
         nextCall = _newChange;
         emit batchGroupingChanged(nextCall);
     }

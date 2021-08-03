@@ -384,10 +384,10 @@ contract("ULP", (accounts) => {
                 await ulp_contract.distribute();
             }
 
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[2])).toString(), new BN('90044943073432772014718').toString());
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[3])).toString(), new BN('180089886146865544029436').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[2])).toString(), new BN('340000000000000000000000').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[3])).toString(), new BN('680000000000000000000000').toString());
             assert.equal(new BN(await gbts_contract.balanceOf(accounts[4])).toString(), new BN('270000000000000000000000').toString());
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[5])).toString(), new BN('360179772293731088058873').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[5])).toString(), new BN('1360000000000000000000000').toString());
         });
 
         it("Distribution is working", async () => {
@@ -395,9 +395,9 @@ contract("ULP", (accounts) => {
                 await ulp_contract.distribute();
             }
 
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[2])).toString(), new BN('90089886146865544029436').toString());
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[3])).toString(), new BN('180269658440596632088308').toString());
-            assert.equal(new BN(await gbts_contract.balanceOf(accounts[5])).toString(), new BN('360539316881193264176619').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[2])).toString(), new BN('590000000000000000000000').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[3])).toString(), new BN('1680000000000000000000000').toString());
+            assert.equal(new BN(await gbts_contract.balanceOf(accounts[5])).toString(), new BN('3360000000000000000000000').toString());
         });
     });
 
@@ -447,7 +447,6 @@ contract("ULP", (accounts) => {
                 { from: accounts[0] }
             );
 
-            await timeMachine.advanceTimeAndBlock(86400);
             await ulp_contract.unlockGameForApproval(
                 game2_contract.address,
                 { from: accounts[0] }
@@ -459,7 +458,6 @@ contract("ULP", (accounts) => {
                 { from: accounts[0] }
             );
 
-            await timeMachine.advanceTimeAndBlock(86400);
             await ulp_contract.unlockGameForApproval(
                 game3_contract.address,
                 { from: accounts[0] }
@@ -470,7 +468,11 @@ contract("ULP", (accounts) => {
                 true,
                 { from: accounts[0] }
             );
-
+            
+            await ulp_contract.unlockGameForApproval(
+                game2_contract.address,
+                { from: accounts[0] }
+            );
             await timeMachine.advanceTimeAndBlock(86400);
             await ulp_contract.changeGameApproval(
                 game2_contract.address,

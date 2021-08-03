@@ -379,11 +379,12 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
             _gameAddr.isContract() == true,
             "ULP: Address is not contract address"
         );
-        uint256 index = gameIndex[_gameAddr];
-        if (approvedGamesList[index] == _gameAddr) {
-            address addy = approvedGamesList[approvedGamesList.length - 1];
-            approvedGamesList[index] = addy;
-            gameIndex[addy] = index;
+        uint256 currentGameIndex = gameIndex[_gameAddr];
+
+        if (approvedGamesList.length > currentGameIndex && approvedGamesList[currentGameIndex] == _gameAddr) {
+            address lastGameAddr = approvedGamesList[approvedGamesList.length - 1];
+            approvedGamesList[currentGameIndex] = lastGameAddr;
+            gameIndex[lastGameAddr] = currentGameIndex;
             approvedGamesList.pop();
         }
 

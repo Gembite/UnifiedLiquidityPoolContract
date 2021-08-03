@@ -394,6 +394,8 @@ contract UnifiedLiquidityPool is ERC20, Ownable, ReentrancyGuard {
         }
 
         gameApprovalLockTimestamp[_gameAddr] = 0;
+        isApprovedGame[_gameAddr] = _approved;
+
         emit gameApproved(_gameAddr, _approved);
     }
 

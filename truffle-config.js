@@ -20,9 +20,16 @@ module.exports = {
       timeoutBlocks: 50000,
       skipDryRun: true,
     },
-    matic: {
+    mumbai: {
       provider: () => new HDWalletProvider(secretMumbai.mnemonic, `https://rpc-mumbai.maticvigil.com`),
       network_id: 80001,
+      confirmations: 2,
+      timeoutBlocks: 5000,
+      skipDryRun: true
+    },
+    matic: {
+      provider: () => new HDWalletProvider(secretMumbai.mnemonic, `https://rpc-mainnet.maticvigil.com`),
+      network_id: 137,
       confirmations: 2,
       timeoutBlocks: 5000,
       skipDryRun: true

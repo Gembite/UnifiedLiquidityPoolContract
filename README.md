@@ -1,2 +1,2 @@
-# RockPaperScissorsContract
-Contract for RockPaperScissors game
+# UnifiedLiquidityPool Contract
+Contract for UnifiedLiquidityPool game

@@ -1,2 +1,2 @@
 # UnifiedLiquidityPool Contract
-Contract for UnifiedLiquidityPool game
+Contract for UnifiedLiquidityPool
